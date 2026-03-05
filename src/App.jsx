@@ -21,7 +21,7 @@ async function askAI(prompt) {
 const toDateStr = (ts) => {
   if (!ts) return "";
   const d = ts.toDate ? ts.toDate() : new Date(ts);
-  return d.toISOString().slice(0, 10); // "YYYY-MM-DD"
+  return d.toISOString().slice(0, 10);
 };
 const todayStr = () => new Date().toISOString().slice(0, 10);
 const fmtDisplayDate = (str) => {
@@ -34,11 +34,13 @@ const fmtMonthYear = (str) => {
   const [y, m] = str.split("-");
   return new Date(+y, +m - 1).toLocaleDateString("en-IN", { month:"long", year:"numeric" });
 };
-const getMonthStr = (str) => str ? str.slice(0, 7) : ""; // "YYYY-MM"
 const fmtDate = ts => { if(!ts)return""; const d=ts.toDate?ts.toDate():new Date(ts); return d.toLocaleDateString("en-IN",{month:"short",day:"numeric"}); };
 const inits = n => n?n.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2):"?";
 const todayLong = () => new Date().toLocaleDateString("en-IN",{weekday:"long",month:"long",day:"numeric"});
 const CC = {food:"#fb923c",transport:"#3b82f6",entertainment:"#a855f7",shopping:"#ec4899",health:"#22c55e",utilities:"#eab308",rent:"#ef4444",salary:"#10b981",other:"#6b7280"};
+
+// First day of current month
+const firstOfMonth = () => todayStr().slice(0,7) + "-01";
 
 // Navigate day/month helpers
 const addDays = (str, n) => {
@@ -58,13 +60,53 @@ function DateNav({ mode="day", value, onChange, accentColor="var(--g)" }) {
   const next = () => onChange(mode === "day" ? addDays(value, 1) : addMonths(value, 1));
   const isToday = mode === "day" ? value === todayStr() : value === todayStr().slice(0,7);
   return (
-    <div style={{display:"flex",alignItems:"center",gap:".5rem",background:"rgba(0,0,0,.3)",border:`1px solid ${accentColor}33`,borderRadius:"12px",padding:".35rem .6rem",marginBottom:"1.5rem",width:"fit-content"}}>
+    <div style={{display:"flex",alignItems:"center",gap:".5rem",background:"rgba(0,0,0,.3)",border:`1px solid ${accentColor}33`,borderRadius:"12px",padding:".35rem .6rem",width:"fit-content"}}>
       <button onClick={prev} style={{background:"none",border:"none",color:accentColor,cursor:"pointer",padding:"2px 6px",borderRadius:"6px",fontSize:"1rem",lineHeight:1}}>‹</button>
       <span style={{fontSize:".82rem",fontWeight:600,color:"#fff",fontFamily:"'Outfit',sans-serif",minWidth:"180px",textAlign:"center"}}>{label}</span>
       <button onClick={next} style={{background:"none",border:"none",color:accentColor,cursor:"pointer",padding:"2px 6px",borderRadius:"6px",fontSize:"1rem",lineHeight:1}}>›</button>
       {!isToday && (
         <button onClick={()=>onChange(mode==="day"?todayStr():todayStr().slice(0,7))} style={{background:`${accentColor}22`,border:`1px solid ${accentColor}44`,color:accentColor,cursor:"pointer",padding:"2px 8px",borderRadius:"6px",fontSize:".68rem",fontWeight:700,marginLeft:"2px",fontFamily:"'JetBrains Mono',monospace"}}>TODAY</button>
       )}
+    </div>
+  );
+}
+
+// ─── DATE RANGE PICKER ────────────────────────────────────────────────────────
+function DateRangePicker({ fromDate, toDate, onFromChange, onToChange, accentColor="var(--o)" }) {
+  const presets = [
+    { label:"Today", from: todayStr(), to: todayStr() },
+    { label:"Last 7d", from: addDays(todayStr(),-6), to: todayStr() },
+    { label:"This Month", from: firstOfMonth(), to: todayStr() },
+    { label:"Last 30d", from: addDays(todayStr(),-29), to: todayStr() },
+  ];
+  const isPreset = (p) => p.from === fromDate && p.to === toDate;
+  return (
+    <div style={{background:"rgba(0,0,0,.3)",border:`1px solid ${accentColor}33`,borderRadius:"16px",padding:"1rem 1.1rem",marginBottom:"1.5rem"}}>
+      <div style={{fontSize:".68rem",color:accentColor,fontFamily:"'JetBrains Mono',monospace",letterSpacing:".08em",textTransform:"uppercase",marginBottom:".75rem",fontWeight:700}}>📅 Tracking Period</div>
+      <div style={{display:"flex",gap:"1rem",flexWrap:"wrap",alignItems:"center",marginBottom:".75rem"}}>
+        <div style={{display:"flex",flexDirection:"column",gap:".25rem",flex:"1",minWidth:"130px"}}>
+          <label style={{fontSize:".68rem",color:"var(--muted2)",fontFamily:"'JetBrains Mono',monospace",textTransform:"uppercase",letterSpacing:".06em"}}>From</label>
+          <input type="date" value={fromDate} max={toDate} onChange={e=>onFromChange(e.target.value)}
+            style={{padding:".55rem .75rem",background:"rgba(0,0,0,.4)",border:`1px solid ${accentColor}44`,borderRadius:"10px",color:"#fff",fontFamily:"'Outfit',sans-serif",fontSize:".83rem",outline:"none",colorScheme:"dark",cursor:"pointer"}}/>
+        </div>
+        <div style={{color:"var(--muted)",fontSize:"1rem",marginTop:"18px"}}>→</div>
+        <div style={{display:"flex",flexDirection:"column",gap:".25rem",flex:"1",minWidth:"130px"}}>
+          <label style={{fontSize:".68rem",color:"var(--muted2)",fontFamily:"'JetBrains Mono',monospace",textTransform:"uppercase",letterSpacing:".06em"}}>To</label>
+          <input type="date" value={toDate} min={fromDate} max={todayStr()} onChange={e=>onToChange(e.target.value)}
+            style={{padding:".55rem .75rem",background:"rgba(0,0,0,.4)",border:`1px solid ${accentColor}44`,borderRadius:"10px",color:"#fff",fontFamily:"'Outfit',sans-serif",fontSize:".83rem",outline:"none",colorScheme:"dark",cursor:"pointer"}}/>
+        </div>
+      </div>
+      <div style={{display:"flex",gap:".4rem",flexWrap:"wrap"}}>
+        {presets.map(p=>(
+          <button key={p.label} onClick={()=>{onFromChange(p.from);onToChange(p.to);}}
+            style={{fontSize:".7rem",padding:".3rem .7rem",borderRadius:"20px",border:`1px solid ${isPreset(p)?accentColor:accentColor+"44"}`,background:isPreset(p)?`${accentColor}22`:"transparent",color:isPreset(p)?accentColor:"var(--muted2)",cursor:"pointer",fontFamily:"'JetBrains Mono',monospace",fontWeight:600,transition:"all .2s"}}>
+            {p.label}
+          </button>
+        ))}
+      </div>
+      {fromDate&&toDate&&<div style={{fontSize:".72rem",color:"var(--muted2)",marginTop:".65rem",fontFamily:"'Outfit',sans-serif"}}>
+        Showing: <span style={{color:accentColor,fontWeight:600}}>{fmtDisplayDate(fromDate)}</span> &nbsp;to&nbsp; <span style={{color:accentColor,fontWeight:600}}>{fmtDisplayDate(toDate)}</span>
+      </div>}
     </div>
   );
 }
@@ -93,6 +135,7 @@ const I = {
   X:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
   Arrow:()=><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>,
   Trip:()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 17l2-8h14l2 8"/><path d="M5 9V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4"/><circle cx="7.5" cy="17" r="2.5"/><circle cx="16.5" cy="17" r="2.5"/></svg>,
+  Range:()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>,
 };
 
 // ─── MESH BG ──────────────────────────────────────────────────────────────────
@@ -247,10 +290,7 @@ const Styles = () => (
     .member-chip{display:inline-flex;align-items:center;gap:.35rem;padding:.28rem .65rem;border-radius:20px;font-size:.72rem;font-weight:600;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);color:var(--b);margin:.18rem}
     .member-chip button{background:none;border:none;color:var(--r);cursor:pointer;padding:0;display:flex;align-items:center}
     .section-label{font-size:.7rem;color:var(--muted2);font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:.6rem;font-family:'JetBrains Mono',monospace}
-    /* view toggle for expense */
-    .view-tog{display:flex;gap:.3rem;background:rgba(0,0,0,.3);padding:.22rem;border-radius:9px;border:1px solid var(--border)}
-    .view-btn{padding:.35rem .75rem;border-radius:7px;border:none;background:transparent;color:var(--muted2);font-family:'Outfit',sans-serif;font-size:.75rem;font-weight:600;cursor:pointer;transition:all .2s}
-    .view-btn.active{background:rgba(249,115,22,.18);color:var(--o)}
+    input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.5;cursor:pointer}
   `}</style>
 );
 
@@ -296,8 +336,10 @@ function Auth({ onAuth }) {
 }
 
 // ─── DAYFLOW ──────────────────────────────────────────────────────────────────
+// Tasks start fresh each day. Navigate to any past date to review progress.
 function Planner({ user }) {
   const [allTasks,setAllTasks]=useState([]);
+  // Always defaults to today on load — fresh start every day
   const [selectedDate,setSelectedDate]=useState(todayStr());
   const [dump,setDump]=useState("");const [aiLoad,setAiLoad]=useState(false);
   const [newT,setNewT]=useState("");const [newTm,setNewTm]=useState("");const [newP,setNewP]=useState("medium");
@@ -312,8 +354,10 @@ function Planner({ user }) {
     load();
   },[user.uid]);
 
-  // Filter tasks by selected date (stored as dateStr field)
+  // Filter tasks by selected date
   const tasks = allTasks.filter(t => (t.dateStr || toDateStr(t.createdAt)) === selectedDate);
+  const isToday = selectedDate === todayStr();
+  const isPast = selectedDate < todayStr();
 
   async function add(text,time="",priority="medium"){
     const t={uid:user.uid,text,time,priority,done:false,dateStr:selectedDate,createdAt:serverTimestamp()};
@@ -339,7 +383,6 @@ function Planner({ user }) {
 
   const done=tasks.filter(t=>t.done).length;
   const pct=tasks.length?Math.round((done/tasks.length)*100):0;
-  const isToday = selectedDate === todayStr();
 
   return (
     <div className="page">
@@ -347,36 +390,88 @@ function Planner({ user }) {
       <MeshBG variant="planner"/>
       <div className="pi">
         <header className="fi" style={{marginBottom:"1.25rem"}}>
-          <div className="fm" style={{fontSize:".7rem",color:"var(--g)",letterSpacing:".1em",marginBottom:".4rem",textTransform:"uppercase"}}>{isToday?"Today · "+todayLong():"Dayflow"}</div>
-          <h1 className="fs" style={{fontSize:"clamp(1.8rem,5vw,3rem)",fontWeight:800,letterSpacing:"-.04em",lineHeight:1.05}}>Design your<br/><span className="fp" style={{fontStyle:"italic",color:"var(--g)"}}>Productive Day.</span></h1>
+          <div className="fm" style={{fontSize:".7rem",color:"var(--g)",letterSpacing:".1em",marginBottom:".4rem",textTransform:"uppercase"}}>{isToday?"Today · "+todayLong():isPast?"Past Day — Review Mode":"Dayflow"}</div>
+          <h1 className="fs" style={{fontSize:"clamp(1.8rem,5vw,3rem)",fontWeight:800,letterSpacing:"-.04em",lineHeight:1.05}}>
+            {isPast ? <>Reviewing <span className="fp" style={{fontStyle:"italic",color:"var(--g)"}}>Past Day.</span></> : <>Design your<br/><span className="fp" style={{fontStyle:"italic",color:"var(--g)"}}>Productive Day.</span></>}
+          </h1>
         </header>
 
-        {/* Day navigator */}
-        <DateNav mode="day" value={selectedDate} onChange={d=>{setSelectedDate(d);setInsight("");}} accentColor="var(--g)"/>
+        {/* Day navigator — navigate forward/backward, always starts fresh at today */}
+        <div style={{marginBottom:"1.5rem",display:"flex",gap:"10px",alignItems:"center",flexWrap:"wrap"}}>
+
+  <DateNav
+    mode="day"
+    value={selectedDate}
+    onChange={d=>{
+      setSelectedDate(d);
+      setInsight("");
+    }}
+    accentColor="var(--g)"
+  />
+
+  <input
+    type="date"
+    value={selectedDate}
+    max={todayStr()}
+    onChange={(e)=>{
+      setSelectedDate(e.target.value);
+      setInsight("");
+    }}
+    style={{
+      padding:"6px 10px",
+      borderRadius:"8px",
+      border:"1px solid rgba(255,255,255,.1)",
+      background:"rgba(0,0,0,.4)",
+      color:"#fff",
+      fontFamily:"Outfit",
+      cursor:"pointer"
+    }}
+  />
+
+</div>
 
         <div className="g2">
+          {/* Left panel — only show planner in today mode, show summary in past mode */}
           <div className="gc fi fi1">
-            <h3 className="fs" style={{marginBottom:"1.25rem",display:"flex",alignItems:"center",gap:".5rem",fontSize:".95rem"}}><span style={{color:"var(--g)"}}><I.Sparkle/></span>AI Thought Dump</h3>
-            <textarea className="inp inp-g" rows={4} placeholder={`Brain dump tasks for ${fmtDisplayDate(selectedDate)}…`} value={dump} onChange={e=>setDump(e.target.value)}/>
-            <button className="btn btn-g btn-full" style={{marginTop:".65rem"}} onClick={planAI} disabled={aiLoad||!dump.trim()}>
-              {aiLoad?<><span style={{display:"flex",gap:"3px"}}>{[0,1,2].map(i=><span key={i} style={{animation:`dp 1s ease-in-out ${i*.18}s infinite`,fontSize:"1.2rem",lineHeight:.8}}>·</span>)}<style>{`@keyframes dp{0%,100%{opacity:.2}50%{opacity:1}}`}</style></span>Drafting Plan</>:<><I.Sparkle/>Generate Schedule</>}
-            </button>
-            {tasks.length>0&&<button className="btn btn-ghost btn-full btn-sm" style={{marginTop:".5rem"}} onClick={getDayInsight} disabled={insightLoad}>{insightLoad?<><I.Bot/>Analyzing…</>:<><I.Zap/>Get Day Insight</>}</button>}
-            {insight&&<div className="ai-insight" style={{borderColor:"var(--g)"}}>{insight}</div>}
-            <div className="divider"/>
-            <h3 className="fs" style={{marginBottom:".75rem",fontSize:".85rem",color:"var(--muted2)",fontWeight:600}}>Manual Entry</h3>
-            <input className="inp inp-g" style={{marginBottom:".55rem"}} placeholder="Task description" value={newT} onChange={e=>setNewT(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addManual()}/>
-            <div style={{display:"flex",gap:".5rem",marginBottom:".55rem"}}>
-              <input className="inp inp-g" style={{flex:1}} placeholder="Time (9:00 AM)" value={newTm} onChange={e=>setNewTm(e.target.value)}/>
-              <select className="inp inp-g" style={{width:"auto",paddingLeft:".75rem"}} value={newP} onChange={e=>setNewP(e.target.value)}><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
-            </div>
-            <button className="btn btn-ghost btn-full" onClick={addManual}><I.Plus/>Add Task</button>
+            {isPast ? (
+              <>
+                <h3 className="fs" style={{marginBottom:"1rem",fontSize:".95rem",display:"flex",alignItems:"center",gap:".5rem"}}><span style={{color:"var(--g)"}}><I.Calendar/></span>Day Summary</h3>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".75rem",marginBottom:"1rem"}}>
+                  {[{label:"Total Tasks",val:tasks.length,col:"var(--muted2)"},{label:"Completed",val:done,col:"var(--g)"},{label:"Pending",val:tasks.length-done,col:"var(--r)"},{label:"Completion",val:`${pct}%`,col:pct>=70?"var(--g)":pct>=40?"#f59e0b":"var(--r)"}].map(s=>(
+                    <div key={s.label} style={{background:"rgba(0,0,0,.3)",border:"1px solid var(--border)",borderRadius:"12px",padding:".85rem",textAlign:"center"}}>
+                      <div className="fm" style={{fontSize:"1.4rem",fontWeight:800,color:s.col}}>{s.val}</div>
+                      <div style={{fontSize:".68rem",color:"var(--muted2)",marginTop:"3px"}}>{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+                {tasks.length>0&&<><button className="btn btn-ghost btn-full btn-sm" onClick={getDayInsight} disabled={insightLoad}>{insightLoad?<><I.Bot/>Analyzing…</>:<><I.Zap/>Get Day Insight</>}</button>{insight&&<div className="ai-insight" style={{borderColor:"var(--g)"}}>{insight}</div>}</>}
+                {tasks.length===0&&<div style={{textAlign:"center",padding:"1.5rem 0",color:"var(--muted)",fontSize:".83rem"}}>No tasks were logged for this day.</div>}
+              </>
+            ) : (
+              <>
+                <h3 className="fs" style={{marginBottom:"1.25rem",display:"flex",alignItems:"center",gap:".5rem",fontSize:".95rem"}}><span style={{color:"var(--g)"}}><I.Sparkle/></span>AI Thought Dump</h3>
+                <textarea className="inp inp-g" rows={4} placeholder="Brain dump your tasks for today…" value={dump} onChange={e=>setDump(e.target.value)}/>
+                <button className="btn btn-g btn-full" style={{marginTop:".65rem"}} onClick={planAI} disabled={aiLoad||!dump.trim()}>
+                  {aiLoad?<><span style={{display:"flex",gap:"3px"}}>{[0,1,2].map(i=><span key={i} style={{animation:`dp 1s ease-in-out ${i*.18}s infinite`,fontSize:"1.2rem",lineHeight:.8}}>·</span>)}<style>{`@keyframes dp{0%,100%{opacity:.2}50%{opacity:1}}`}</style></span>Drafting Plan</>:<><I.Sparkle/>Generate Schedule</>}
+                </button>
+                {tasks.length>0&&<button className="btn btn-ghost btn-full btn-sm" style={{marginTop:".5rem"}} onClick={getDayInsight} disabled={insightLoad}>{insightLoad?<><I.Bot/>Analyzing…</>:<><I.Zap/>Get Day Insight</>}</button>}
+                {insight&&<div className="ai-insight" style={{borderColor:"var(--g)"}}>{insight}</div>}
+                <div className="divider"/>
+                <h3 className="fs" style={{marginBottom:".75rem",fontSize:".85rem",color:"var(--muted2)",fontWeight:600}}>Manual Entry</h3>
+                <input className="inp inp-g" style={{marginBottom:".55rem"}} placeholder="Task description" value={newT} onChange={e=>setNewT(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addManual()}/>
+                <div style={{display:"flex",gap:".5rem",marginBottom:".55rem"}}>
+                  <input className="inp inp-g" style={{flex:1}} placeholder="Time (9:00 AM)" value={newTm} onChange={e=>setNewTm(e.target.value)}/>
+                  <select className="inp inp-g" style={{width:"auto",paddingLeft:".75rem"}} value={newP} onChange={e=>setNewP(e.target.value)}><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
+                </div>
+                <button className="btn btn-ghost btn-full" onClick={addManual}><I.Plus/>Add Task</button>
+              </>
+            )}
           </div>
 
           <div className="gc fi fi2">
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.1rem"}}>
               <div>
-                <h3 className="fs" style={{fontSize:".95rem"}}>Dayflow</h3>
+                <h3 className="fs" style={{fontSize:".95rem"}}>{isPast?"Task Log":"Dayflow"}</h3>
                 <div style={{fontSize:".72rem",color:"var(--muted2)",marginTop:"2px"}}>{fmtDisplayDate(selectedDate)}</div>
               </div>
               {tasks.length>0&&<span className="fm" style={{fontSize:".7rem",color:"var(--g)"}}>{done}/{tasks.length} DONE</span>}
@@ -384,15 +479,15 @@ function Planner({ user }) {
             {tasks.length>0&&(
               <div style={{marginBottom:"1.1rem"}}>
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:".3rem"}}><span style={{fontSize:".7rem",color:"var(--muted2)"}}>Progress</span><span className="fm" style={{fontSize:".7rem",color:"var(--g)",fontWeight:700}}>{pct}%</span></div>
-                <div className="prog-track"><div className="prog-fill" style={{width:`${pct}%`,background:"var(--g)"}}/></div>
+                <div className="prog-track"><div className="prog-fill" style={{width:`${pct}%`,background:pct>=70?"var(--g)":pct>=40?"#f59e0b":"var(--r)"}}/></div>
               </div>
             )}
             <div style={{display:"flex",flexDirection:"column",gap:".5rem"}}>
               {loading?<div style={{color:"var(--muted)",fontSize:".85rem"}}>Loading…</div>:
-               tasks.length===0?<div style={{textAlign:"center",padding:"2rem 0",color:"var(--muted)"}}><div className="fp" style={{fontSize:"1.05rem",fontStyle:"italic",marginBottom:".4rem"}}>No tasks for this day.</div><div style={{fontSize:".8rem"}}>Use the AI planner or add manually.</div></div>:
+               tasks.length===0?<div style={{textAlign:"center",padding:"2rem 0",color:"var(--muted)"}}><div className="fp" style={{fontSize:"1.05rem",fontStyle:"italic",marginBottom:".4rem"}}>{isPast?"Nothing was logged.":"No tasks yet."}</div><div style={{fontSize:".8rem"}}>{isPast?"This day had no tasks recorded.":"Use the AI planner or add manually."}</div></div>:
                tasks.map((t,idx)=>(
                 <div key={t.id} className={`task-row ${t.done?"done":""} si2`} style={{animationDelay:`${idx*.04}s`}}>
-                  <div className="chk" style={t.done?{background:"var(--g)",borderColor:"var(--g)"}:{}} onClick={()=>toggle(t.id,t.done)}>{t.done&&<I.Check/>}</div>
+                  <div className="chk" style={t.done?{background:"var(--g)",borderColor:"var(--g)"}:{}} onClick={()=>!isPast&&toggle(t.id,t.done)}>{t.done&&<I.Check/>}</div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontWeight:500,textDecoration:t.done?"line-through":"none",fontSize:".87rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.text}</div>
                     <div style={{display:"flex",alignItems:"center",gap:".35rem",marginTop:"3px",flexWrap:"wrap"}}>
@@ -400,7 +495,7 @@ function Planner({ user }) {
                       <span className={`pri pri-${t.priority==="high"?"h":t.priority==="low"?"l":"m"}`}>{t.priority}</span>
                     </div>
                   </div>
-                  <button style={{background:"transparent",border:"none",color:"var(--muted)",cursor:"pointer",padding:"3px",transition:"color .2s",display:"flex",alignItems:"center",flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.color="var(--r)"} onMouseLeave={e=>e.currentTarget.style.color="var(--muted)"} onClick={()=>del(t.id)}><I.Trash/></button>
+                  {!isPast&&<button style={{background:"transparent",border:"none",color:"var(--muted)",cursor:"pointer",padding:"3px",transition:"color .2s",display:"flex",alignItems:"center",flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.color="var(--r)"} onMouseLeave={e=>e.currentTarget.style.color="var(--muted)"} onClick={()=>del(t.id)}><I.Trash/></button>}
                 </div>
                ))}
             </div>
@@ -438,6 +533,7 @@ function computeDebts(expenses, members) {
 function Split({ user }) {
   const [friends,setFriends]=useState([]);
   const [allExpenses,setAllExpenses]=useState([]);
+  // Calendar for normal mode: show expenses for selected date
   const [selectedDate,setSelectedDate]=useState(todayStr());
   const [newF,setNewF]=useState("");
   const [desc,setDesc]=useState("");const [amt,setAmt]=useState("");
@@ -461,17 +557,23 @@ function Split({ user }) {
       try{
         if(mode==="trip"){
           if(activeTrip){
-            const tq=query(collection(db,"trips",activeTrip.id,"expenses"));
+            // ✅ FIX: Use top-level "tripExpenses" collection with tripId filter
+            // This avoids Firestore subcollection permission issues
+            const tq=query(collection(db,"tripExpenses"),where("tripId","==",activeTrip.id));
             const ts=await getDocs(tq);
             const docs=ts.docs.map(d=>({id:d.id,...d.data()}));
-            docs.sort((a,b)=>{const ta=a.createdAt?.toDate?a.createdAt.toDate():new Date(a.createdAt||0);const tb=b.createdAt?.toDate?b.createdAt.toDate():new Date(b.createdAt||0);return tb-ta;});
+            docs.sort((a,b)=>{
+              const ta=a.createdAt?.toDate?a.createdAt.toDate():new Date(a.createdAt||0);
+              const tb=b.createdAt?.toDate?b.createdAt.toDate():new Date(b.createdAt||0);
+              return tb-ta;
+            });
             setAllExpenses(docs);
           }else{setAllExpenses([]);}
         }else{
           const eq=query(collection(db,"splitExpenses"),where("uid","==",user.uid),orderBy("createdAt","desc"));
           const es=await getDocs(eq);setAllExpenses(es.docs.map(d=>({id:d.id,...d.data()})));
         }
-      }catch(e){console.error(e);setAllExpenses([]);}
+      }catch(e){console.error("loadExpenses error:",e);setAllExpenses([]);}
       setLoading(false);
     }
     loadExpenses();
@@ -486,7 +588,7 @@ function Split({ user }) {
   const activeMemberIds = mode==="trip"&&activeTrip?(activeTrip.members||[]):friends.map(f=>f.id);
   const allMembers = friends.filter(f=>activeMemberIds.includes(f.id));
 
-  // Filter expenses by selected date (normal mode only)
+  // In normal mode, filter by selected date. In trip mode, show all trip expenses.
   const expenses = mode==="trip" ? allExpenses : allExpenses.filter(e=>(e.dateStr||toDateStr(e.createdAt))===selectedDate);
   const p2pDebts = computeDebts(expenses, allMembers);
 
@@ -498,27 +600,58 @@ function Split({ user }) {
     if(!desc.trim()||!amt||splitWith.length===0||!payerId)return;
     const a=parseFloat(amt);const uniqueSplitters=[...new Set(splitWith)];const pp=a/uniqueSplitters.length;
     const e={uid:user.uid,desc:desc.trim(),amount:a,perPerson:pp,paidBy:payerId,splitWith:uniqueSplitters,settled:[],dateStr:selectedDate,createdAt:serverTimestamp()};
+    const localEntry={...e,createdAt:new Date()};
     try{
-      if(mode==="trip"&&activeTrip){const r=await addDoc(collection(db,"trips",activeTrip.id,"expenses"),e);setAllExpenses(p=>[{id:r.id,...e,createdAt:new Date()},...p]);}
-      else{const r=await addDoc(collection(db,"splitExpenses"),e);setAllExpenses(p=>[{id:r.id,...e,createdAt:new Date()},...p]);}
-    }catch(err){console.error(err);}
+      if(mode==="trip"&&activeTrip){
+        // ✅ FIX: Save to top-level "tripExpenses" with tripId field
+        const tripEntry={...e,tripId:activeTrip.id};
+        const r=await addDoc(collection(db,"tripExpenses"),tripEntry);
+        // Update local state immediately so it shows in Activity
+        setAllExpenses(p=>[{id:r.id,...tripEntry,createdAt:new Date()},...p]);
+      }else{
+        const r=await addDoc(collection(db,"splitExpenses"),e);
+        setAllExpenses(p=>[{id:r.id,...localEntry},...p]);
+      }
+    }catch(err){
+      console.error("addExp error:",err);
+      // Even if Firestore fails, show locally with temp ID
+      setAllExpenses(p=>[{id:"tmp_"+Date.now(),...(mode==="trip"&&activeTrip?{...e,tripId:activeTrip.id}:e),createdAt:new Date()},...p]);
+    }
     setDesc("");setAmt("");setSplitWith([]);setPaidBy("");
   }
 
   async function settle(expId,fid){
     setAllExpenses(p=>p.map(e=>e.id===expId?{...e,settled:[...(e.settled||[]),fid]}:e));
-    try{if(mode==="trip"&&activeTrip)await updateDoc(doc(db,"trips",activeTrip.id,"expenses",expId),{settled:arrayUnion(fid)});else await updateDoc(doc(db,"splitExpenses",expId),{settled:arrayUnion(fid)});}catch{}
+    try{
+      if(mode==="trip"&&activeTrip) await updateDoc(doc(db,"tripExpenses",expId),{settled:arrayUnion(fid)});
+      else await updateDoc(doc(db,"splitExpenses",expId),{settled:arrayUnion(fid)});
+    }catch(e){console.error(e);}
     setModal(null);
   }
 
   async function delExpense(expId){
     if(!window.confirm("Delete this expense?"))return;
     setAllExpenses(p=>p.filter(e=>e.id!==expId));
-    try{if(mode==="trip"&&activeTrip)await deleteDoc(doc(db,"trips",activeTrip.id,"expenses",expId));else await deleteDoc(doc(db,"splitExpenses",expId));}catch(e){console.error(e);}
+    try{
+      if(mode==="trip"&&activeTrip) await deleteDoc(doc(db,"tripExpenses",expId));
+      else await deleteDoc(doc(db,"splitExpenses",expId));
+    }catch(e){console.error(e);}
   }
 
   async function createTrip(){if(!newTrip.trim())return;const trip={uid:user.uid,name:newTrip.trim(),members:[],createdAt:serverTimestamp()};try{const r=await addDoc(collection(db,"trips"),trip);setTrips(p=>[{id:r.id,...trip,members:[]},...p]);setNewTrip("");}catch(e){console.error(e);}}
-  async function deleteTrip(tripId){if(!window.confirm("Delete this trip?"))return;try{const snap=await getDocs(collection(db,"trips",tripId,"expenses"));for(const d of snap.docs)await deleteDoc(doc(db,"trips",tripId,"expenses",d.id));await deleteDoc(doc(db,"trips",tripId));}catch(e){console.error(e);}setTrips(p=>p.filter(t=>t.id!==tripId));if(activeTrip?.id===tripId){setActiveTrip(null);setAllExpenses([]);}}
+
+  async function deleteTrip(tripId){
+    if(!window.confirm("Delete this trip and all its expenses?"))return;
+    try{
+      // Delete from tripExpenses collection
+      const expQ=query(collection(db,"tripExpenses"),where("tripId","==",tripId));
+      const expSnap=await getDocs(expQ);
+      for(const d of expSnap.docs) await deleteDoc(doc(db,"tripExpenses",d.id));
+      await deleteDoc(doc(db,"trips",tripId));
+    }catch(e){console.error(e);}
+    setTrips(p=>p.filter(t=>t.id!==tripId));
+    if(activeTrip?.id===tripId){setActiveTrip(null);setAllExpenses([]);}
+  }
 
   async function addMemberToTrip(){
     const name=tripMemberInput.trim();if(!name||!activeTrip)return;
@@ -589,8 +722,13 @@ function Split({ user }) {
           )}
         </div>
 
-        {/* Date nav — only in normal mode */}
-        {mode==="normal"&&<DateNav mode="day" value={selectedDate} onChange={setSelectedDate} accentColor="var(--b)"/>}
+        {/* Date nav — only in normal mode; shows which day's expenses you're viewing */}
+        {mode==="normal"&&(
+          <div style={{marginBottom:"1.5rem"}}>
+            <div style={{fontSize:".68rem",color:"var(--b)",fontFamily:"'JetBrains Mono',monospace",letterSpacing:".08em",textTransform:"uppercase",marginBottom:".5rem",fontWeight:700}}>📅 Viewing Expenses For</div>
+            <DateNav mode="day" value={selectedDate} onChange={d=>{setSelectedDate(d);setInsight("");}} accentColor="var(--b)"/>
+          </div>
+        )}
 
         <div className="gs">
           {/* LEFT */}
@@ -634,8 +772,9 @@ function Split({ user }) {
                 Activity {mode==="trip"&&activeTrip&&<span style={{fontSize:".75rem",color:"var(--b)",fontWeight:400,marginLeft:".4rem"}}>· {activeTrip.name}</span>}
               </h3>
               {mode==="normal"&&<div style={{fontSize:".72rem",color:"var(--b)",fontFamily:"'JetBrains Mono',monospace",marginBottom:"1rem"}}>📅 {fmtDisplayDate(selectedDate)}</div>}
-              {loading?<div style={{color:"var(--muted)"}}>Loading…</div>:
-               expenses.length===0?<div style={{textAlign:"center",padding:"2.5rem 0",color:"var(--muted)"}}><div className="fp" style={{fontStyle:"italic",fontSize:"1.05rem",marginBottom:".35rem"}}>No expenses yet.</div><div style={{fontSize:".8rem"}}>{mode==="trip"&&!activeTrip?"Select a trip.":"Add your first shared expense."}</div></div>
+              {mode==="trip"&&activeTrip&&<div style={{fontSize:".72rem",color:"var(--muted2)",marginBottom:"1rem",fontFamily:"'Outfit',sans-serif"}}>All expenses for this trip</div>}
+              {loading?<div style={{color:"var(--muted)",display:"flex",alignItems:"center",gap:".4rem",fontSize:".84rem"}}><span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⟳</span>Loading…<style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>:
+               expenses.length===0?<div style={{textAlign:"center",padding:"2.5rem 0",color:"var(--muted)"}}><div className="fp" style={{fontStyle:"italic",fontSize:"1.05rem",marginBottom:".35rem"}}>No expenses yet.</div><div style={{fontSize:".8rem"}}>{mode==="trip"&&!activeTrip?"Select a trip.":mode==="trip"?"Log your first trip expense.":"Add your first shared expense."}</div></div>
                :expenses.map(e=>{
                  const pName=getName(e.paidBy);
                  const splitNames=(e.splitWith||[]).map(id=>getName(id)).join(", ");
@@ -700,9 +839,10 @@ function Split({ user }) {
 // ─── VAULT ────────────────────────────────────────────────────────────────────
 function Expense({ user }) {
   const [allEntries,setAllEntries]=useState([]);
-  const [viewMode,setViewMode]=useState("day"); // "day" | "month"
-  const [selectedDate,setSelectedDate]=useState(todayStr());
-  const [selectedMonth,setSelectedMonth]=useState(todayStr().slice(0,7));
+  // Date range for viewing; new entries are always tagged to today
+  const [fromDate,setFromDate]=useState(firstOfMonth());
+  const [toDate,setToDate]=useState(todayStr());
+  const [entryDate,setEntryDate]=useState(todayStr()); // date for new entry
   const [desc,setDesc]=useState("");const [amt,setAmt]=useState("");const [cat,setCat]=useState("food");const [type,setType]=useState("expense");
   const [loading,setLoading]=useState(true);
   const [showAI,setShowAI]=useState(false);const [insight,setInsight]=useState("");const [insightLoad,setInsightLoad]=useState(false);
@@ -712,15 +852,18 @@ function Expense({ user }) {
     load();
   },[user.uid]);
 
-  // Filter by day or month
-  const entries = allEntries.filter(e=>{
-    const ds = e.dateStr || toDateStr(e.createdAt);
-    return viewMode==="day" ? ds===selectedDate : ds.slice(0,7)===selectedMonth;
-  });
+  // Filter entries by date range
+  const entries = allEntries.filter(e => {
+  const ds = e.dateStr || toDateStr(e.createdAt);
+
+  if(!ds) return false;
+
+  return ds >= fromDate && ds <= toDate;
+});
 
   async function add(){
     if(!desc.trim()||!amt)return;
-    const e={uid:user.uid,desc:desc.trim(),amount:parseFloat(amt),cat,type,dateStr:selectedDate,createdAt:serverTimestamp()};
+    const e={uid:user.uid,desc:desc.trim(),amount:parseFloat(amt),cat,type,dateStr:entryDate,createdAt:serverTimestamp()};
     try{const r=await addDoc(collection(db,"expenses"),e);setAllEntries(p=>[{id:r.id,...e,createdAt:new Date()},...p]);}
     catch{setAllEntries(p=>[{id:Date.now().toString(),...e,createdAt:new Date()},...p]);}
     setDesc("");setAmt("");
@@ -734,8 +877,8 @@ function Expense({ user }) {
       const spd=entries.filter(e=>e.type==="expense").reduce((s,e)=>s+e.amount,0);
       const catT={};entries.filter(e=>e.type==="expense").forEach(e=>{catT[e.cat]=(catT[e.cat]||0)+e.amount;});
       const topCats=Object.entries(catT).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([c,v])=>`${c}: ₹${v.toFixed(0)}`).join(", ");
-      const period=viewMode==="day"?fmtDisplayDate(selectedDate):fmtMonthYear(selectedMonth+"-01");
-      const txt=await askAI(`Personal finance AI for ${period}.\nIncome: ₹${inc.toFixed(0)}\nSpent: ₹${spd.toFixed(0)}\nSavings Rate: ${inc>0?Math.round(((inc-spd)/inc)*100):0}%\nTop spending: ${topCats}\n\nGive 3-4 sentences of smart analysis and one actionable tip.`);
+      const period=`${fmtDisplayDate(fromDate)} to ${fmtDisplayDate(toDate)}`;
+      const txt=await askAI(`Personal finance AI for period: ${period}.\nIncome: ₹${inc.toFixed(0)}\nSpent: ₹${spd.toFixed(0)}\nSavings Rate: ${inc>0?Math.round(((inc-spd)/inc)*100):0}%\nTop spending: ${topCats}\n\nGive 3-4 sentences of smart analysis and one actionable tip.`);
       setInsight(txt);
     }catch{setInsight("Couldn't load insight.");}setInsightLoad(false);
   }
@@ -747,6 +890,7 @@ function Expense({ user }) {
   const topC=Object.entries(catT).sort((a,b)=>b[1]-a[1]).slice(0,6);
   const maxC=Math.max(...topC.map(c=>c[1]),1);
   const cats=["food","transport","entertainment","shopping","health","utilities","rent","salary","other"];
+  const numDays=Math.max(1,Math.round((new Date(toDate)-new Date(fromDate))/(1000*60*60*24))+1);
 
   return (
     <div className="page">
@@ -758,40 +902,49 @@ function Expense({ user }) {
           <h1 className="fs" style={{fontSize:"clamp(1.8rem,5vw,3rem)",fontWeight:800,letterSpacing:"-.04em",lineHeight:1.05}}>Wealth <span className="fp" style={{fontStyle:"italic",color:"var(--o)"}}>Metrics.</span></h1>
         </header>
 
-        {/* View mode + date navigator */}
-        <div style={{display:"flex",alignItems:"center",gap:"1rem",marginBottom:"1.5rem",flexWrap:"wrap"}}>
-          <div className="view-tog">
-            <button className={`view-btn ${viewMode==="day"?"active":""}`} onClick={()=>setViewMode("day")}>Day</button>
-            <button className={`view-btn ${viewMode==="month"?"active":""}`} onClick={()=>setViewMode("month")}>Month</button>
-          </div>
-          {viewMode==="day"
-            ?<DateNav mode="day" value={selectedDate} onChange={d=>{setSelectedDate(d);setInsight("");}} accentColor="var(--o)"/>
-            :<DateNav mode="month" value={selectedMonth} onChange={m=>{setSelectedMonth(m);setInsight("");}} accentColor="var(--o)"/>}
-        </div>
+        {/* Date Range Picker */}
+        <DateRangePicker
+          fromDate={fromDate} toDate={toDate}
+          onFromChange={d=>{setFromDate(d);setInsight("");}}
+          onToChange={d=>{setToDate(d);setInsight("");}}
+          accentColor="var(--o)"
+        />
 
         {/* Stats */}
         <div className="g3 fi fi1" style={{marginBottom:"1.5rem"}}>
-          <div className="stat sb"><div className="fm" style={{fontSize:".65rem",color:"var(--muted2)",marginBottom:".4rem",textTransform:"uppercase",letterSpacing:".08em",display:"flex",alignItems:"center",gap:".35rem"}}><I.Wallet/>Balance</div><div className="fs" style={{fontSize:"clamp(1.4rem,3vw,1.85rem)",fontWeight:800,letterSpacing:"-.03em"}}>{bal>=0?"+":"-"}₹{Math.abs(bal).toLocaleString()}</div></div>
-          <div className="stat si"><div className="fm" style={{fontSize:".65rem",color:"var(--o)",marginBottom:".4rem",textTransform:"uppercase",letterSpacing:".08em",display:"flex",alignItems:"center",gap:".35rem"}}><I.Up/>Income</div><div className="fs" style={{fontSize:"clamp(1.4rem,3vw,1.85rem)",fontWeight:800,color:"var(--o)",letterSpacing:"-.03em"}}>₹{inc.toLocaleString()}</div></div>
-          <div className="stat ss"><div className="fm" style={{fontSize:".65rem",color:"#f59e0b",marginBottom:".4rem",textTransform:"uppercase",letterSpacing:".08em",display:"flex",alignItems:"center",gap:".35rem"}}><I.Down/>Spent</div><div className="fs" style={{fontSize:"clamp(1.4rem,3vw,1.85rem)",fontWeight:800,color:"#f59e0b",letterSpacing:"-.03em"}}>₹{spd.toLocaleString()}</div></div>
+          <div className="stat sb">
+            <div className="fm" style={{fontSize:".65rem",color:"var(--muted2)",marginBottom:".4rem",textTransform:"uppercase",letterSpacing:".08em",display:"flex",alignItems:"center",gap:".35rem"}}><I.Wallet/>Balance</div>
+            <div className="fs" style={{fontSize:"clamp(1.4rem,3vw,1.85rem)",fontWeight:800,letterSpacing:"-.03em"}}>{bal>=0?"+":"-"}₹{Math.abs(bal).toLocaleString()}</div>
+            <div style={{fontSize:".68rem",color:"var(--muted)",marginTop:"4px"}}>{numDays} day{numDays!==1?"s":""} tracked</div>
+          </div>
+          <div className="stat si">
+            <div className="fm" style={{fontSize:".65rem",color:"var(--o)",marginBottom:".4rem",textTransform:"uppercase",letterSpacing:".08em",display:"flex",alignItems:"center",gap:".35rem"}}><I.Up/>Income</div>
+            <div className="fs" style={{fontSize:"clamp(1.4rem,3vw,1.85rem)",fontWeight:800,color:"var(--o)",letterSpacing:"-.03em"}}>₹{inc.toLocaleString()}</div>
+            <div style={{fontSize:".68rem",color:"var(--muted)",marginTop:"4px"}}>{entries.filter(e=>e.type==="income").length} entries</div>
+          </div>
+          <div className="stat ss">
+            <div className="fm" style={{fontSize:".65rem",color:"#f59e0b",marginBottom:".4rem",textTransform:"uppercase",letterSpacing:".08em",display:"flex",alignItems:"center",gap:".35rem"}}><I.Down/>Spent</div>
+            <div className="fs" style={{fontSize:"clamp(1.4rem,3vw,1.85rem)",fontWeight:800,color:"#f59e0b",letterSpacing:"-.03em"}}>₹{spd.toLocaleString()}</div>
+            <div style={{fontSize:".68rem",color:"var(--muted)",marginTop:"4px"}}>{entries.filter(e=>e.type==="expense").length} entries</div>
+          </div>
         </div>
 
         <div className="ge">
           <div className="gc fi fi2">
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.1rem"}}>
               <h3 className="fs" style={{fontSize:".95rem"}}>Ledger</h3>
-              <span style={{fontSize:".72rem",color:"var(--o)",fontFamily:"'JetBrains Mono',monospace"}}>{viewMode==="day"?fmtDisplayDate(selectedDate):fmtMonthYear(selectedMonth+"-01")}</span>
+              <span style={{fontSize:".7rem",color:"var(--o)",fontFamily:"'JetBrains Mono',monospace"}}>{entries.length} entries</span>
             </div>
             {loading?<div style={{color:"var(--muted)",fontSize:".85rem"}}>Loading…</div>:
-             entries.length===0?<div style={{textAlign:"center",padding:"2.5rem 0",color:"var(--muted)"}}><div className="fp" style={{fontStyle:"italic",fontSize:"1.05rem",marginBottom:".35rem"}}>No transactions.</div><div style={{fontSize:".8rem"}}>Record your first entry for this {viewMode}.</div></div>:
-             entries.slice(0,50).map((e,idx)=>(
+             entries.length===0?<div style={{textAlign:"center",padding:"2.5rem 0",color:"var(--muted)"}}><div className="fp" style={{fontStyle:"italic",fontSize:"1.05rem",marginBottom:".35rem"}}>No transactions.</div><div style={{fontSize:".8rem"}}>No entries in this date range.</div></div>:
+             entries.slice(0,80).map((e,idx)=>(
               <div key={e.id} className="tx-row si2" style={{animationDelay:`${idx*.03}s`}}>
                 <div className="tx-dot" style={{background:CC[e.cat]||"#6b7280"}}/>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontWeight:500,fontSize:".87rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.desc}</div>
                   <div style={{display:"flex",gap:".4rem",marginTop:"3px"}}>
                     <span className="fm" style={{fontSize:".65rem",color:"var(--muted)",textTransform:"capitalize"}}>{e.cat}</span>
-                    <span style={{fontSize:".65rem",color:"var(--muted)"}}>· {fmtDate(e.createdAt)}</span>
+                    <span style={{fontSize:".65rem",color:"var(--muted)"}}>· {e.dateStr||fmtDate(e.createdAt)}</span>
                   </div>
                 </div>
                 <span className="fm" style={{fontWeight:700,color:e.type==="income"?"var(--o)":"var(--text)",fontSize:".86rem",whiteSpace:"nowrap"}}>{e.type==="income"?"+":"-"}₹{e.amount.toLocaleString()}</span>
@@ -803,15 +956,23 @@ function Expense({ user }) {
           <div style={{display:"flex",flexDirection:"column",gap:"1.1rem"}}>
             <div className="gc fi fi1">
               <h3 className="fs" style={{marginBottom:".85rem",fontSize:".95rem"}}>New Entry</h3>
-              <div style={{fontSize:".72rem",color:"var(--o)",fontFamily:"'JetBrains Mono',monospace",marginBottom:".75rem"}}>📅 {fmtDisplayDate(selectedDate)}</div>
+              {/* Entry date picker */}
+              <div style={{marginBottom:".75rem"}}>
+                <div style={{fontSize:".68rem",color:"var(--muted2)",fontFamily:"'JetBrains Mono',monospace",textTransform:"uppercase",letterSpacing:".06em",marginBottom:".35rem"}}>Entry Date</div>
+                <div style={{display:"flex",alignItems:"center",gap:".5rem"}}>
+                  <input type="date" value={entryDate} max={todayStr()} onChange={e=>setEntryDate(e.target.value)}
+                    style={{flex:1,padding:".55rem .75rem",background:"rgba(0,0,0,.4)",border:"1px solid rgba(249,115,22,.4)",borderRadius:"10px",color:"#fff",fontFamily:"'Outfit',sans-serif",fontSize:".83rem",outline:"none",colorScheme:"dark",cursor:"pointer"}}/>
+                  <button onClick={()=>setEntryDate(todayStr())} disabled={entryDate===todayStr()} style={{padding:".45rem .7rem",borderRadius:"8px",border:"1px solid rgba(249,115,22,.3)",background:"rgba(249,115,22,.1)",color:"var(--o)",fontSize:".7rem",cursor:"pointer",fontFamily:"'JetBrains Mono',monospace",fontWeight:700,opacity:entryDate===todayStr()?.4:1}}>TODAY</button>
+                </div>
+              </div>
               <div className="type-tog" style={{marginBottom:".85rem"}}>
                 <button className={`type-btn ${type==="expense"?"se":""}`} onClick={()=>setType("expense")}><I.Down/>Expense</button>
                 <button className={`type-btn ${type==="income"?"si":""}`} onClick={()=>setType("income")}><I.Up/>Income</button>
               </div>
               <input className="inp inp-o" style={{marginBottom:".55rem"}} placeholder="Title (e.g. Groceries)" value={desc} onChange={e=>setDesc(e.target.value)}/>
-              <input className="inp inp-o" style={{marginBottom:".55rem"}} type="number" placeholder="Amount (₹)" value={amt} onChange={e=>setAmt(e.target.value)}/>
+              <input className="inp inp-o" style={{marginBottom:".55rem"}} type="number" placeholder="Amount (₹)" value={amt} onChange={e=>setAmt(e.target.value)} onKeyDown={e=>e.key==="Enter"&&add()}/>
               <select className="inp inp-o" style={{marginBottom:".8rem"}} value={cat} onChange={e=>setCat(e.target.value)}>{cats.map(c=><option key={c} value={c}>{c.charAt(0).toUpperCase()+c.slice(1)}</option>)}</select>
-              <button className="btn btn-o btn-full" onClick={add}>Record Entry</button>
+              <button className="btn btn-o btn-full" onClick={add} disabled={!desc.trim()||!amt}>Record Entry</button>
               {entries.length>0&&<>
                 <button className="btn btn-ghost btn-full btn-sm" style={{marginTop:".55rem"}} onClick={getFinanceInsight} disabled={insightLoad}>{insightLoad?<><I.Bot/>Analyzing…</>:<><I.Zap/>AI Financial Insight</>}</button>
                 {insight&&<div className="ai-insight" style={{borderColor:"var(--o)"}}>{insight}</div>}
@@ -832,6 +993,10 @@ function Expense({ user }) {
                     <div className="prog-track"><div style={{height:"100%",width:`${(v/spd)*100}%`,background:CC[c],borderRadius:"3px",transition:"width .5s"}}/></div>
                   </div>
                 ))}
+                {inc>0&&<div style={{marginTop:".75rem",padding:".6rem .85rem",background:"rgba(16,185,129,.07)",border:"1px solid rgba(16,185,129,.2)",borderRadius:"10px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontSize:".72rem",color:"var(--muted2)"}}>Savings Rate</span>
+                  <span className="fm" style={{fontSize:".8rem",fontWeight:700,color:((inc-spd)/inc)>=.2?"var(--g)":"var(--r)"}}>{Math.max(0,Math.round(((inc-spd)/inc)*100))}%</span>
+                </div>}
               </div>
             )}
           </div>
