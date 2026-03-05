@@ -8,8 +8,8 @@ const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp);
 
-const OR_KEY = "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";
-const OR_URL = "https://openrouter.ai/api/v1/chat/completions";
+const OR_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
+const OR_URL = import.meta.env.VITE_OPENROUTER_URL;
 const OR_HEADERS = { "Content-Type":"application/json","Authorization":`Bearer ${OR_KEY}`,"HTTP-Referer":"https://lemy.app","X-Title":"Lemy" };
 
 async function askAI(prompt) {
